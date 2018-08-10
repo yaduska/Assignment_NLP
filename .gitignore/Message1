@@ -1,0 +1,136 @@
+import string
+import nltk
+from nltk.stem import WordNetLemmatizer
+from nltk.util import ngrams
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from collections import Counter
+import re
+
+import pandas as pd
+
+
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+
+WordCollection= pd.read_csv("SMSSpamCollection.tsv",sep="\t",header=None )
+WordCollection.columns=["head","content"]
+
+WordCollection['R_Puctuation']=WordCollection['content'].str.replace(r'[^\w\s]+', '')
+WordCollection['R_Lower']=WordCollection['R_Puctuation'].str.lower()
+
+sentence_list = []
+for sentence in WordCollection['R_Lower']:
+  sentence_list.append(word_tokenize(sentence))
+
+WordCollection['Word_Split'] = sentence_list
+
+WordCollection['R_Stopwords'] = WordCollection['Word_Split'].apply(lambda tokens: list(word for word in tokens if word not in stopwords.words('english')))
+
+      
+WordCollection['Lemmatization'] = WordCollection['R_Stopwords'].apply(lambda b: [WordNetLemmatizer().lemmatize(a) for a in b])
+bigramsList = []
+for line in WordCollection['Lemmatization']:
+  bigrams = []
+  for x in range(0, len(line) - 1):
+	  bigrams.append((line[x], line[x+1]))
+	
+  bigramsList.append(bigrams)
+WordCollection['Create_Bigrams']= bigramsList
+bigrams = WordCollection.groupby('head').agg({'Create_Bigrams': 'sum'})
+unigrams = WordCollection.groupby('head').agg({'Lemmatization': 'sum'})
+print(bigrams)
+
+Unigram_Ham= {}
+for wordU in unigrams.iat[0, 0]:
+    if wordU not in Unigram_Ham:
+        Unigram_Ham[wordU] = 1
+    else:
+        Unigram_Ham[wordU] += 1
+		
+Unigram_Spam = {}
+for wordU in unigrams.iat[1, 0]:
+    if wordU not in Unigram_Spam:
+        Unigram_Spam[wordU] = 1
+    else:
+        Unigram_Spam[wordU] += 1
+		
+
+Bigram_Ham = {}
+for wordB in bigrams.iat[0, 0]:
+    if wordB not in Bigram_Ham:
+        Bigram_Ham[wordB] = 1
+    else:
+        Bigram_Ham[wordB] += 1
+		
+Bigram_Spam= {}
+for wordB in bigrams.iat[1, 0]:
+    if wordB not in  Bigram_Spam:
+         Bigram_Spam[wordB] = 1
+    else:
+         Bigram_Spam[wordB] += 1
+		 
+
+Show_Out_Msg1 = "Sorry, ..use your brain dear"
+Show_Out_Msg1 = Show_Out_Msg1.lower()
+Show_Out_Msg1 = re.sub(r'[^\w\s]', '', Show_Out_Msg1)
+StopWords = set(stopwords.words('english'))
+word_tokens = word_tokenize(Show_Out_Msg1)
+Filtering = [w for w in word_tokens if not w in StopWords]
+Show_Out_Msg1 = " ".join(Filtering)
+word_tokens = word_tokenize(Show_Out_Msg1)
+
+LWodrs = []
+for ms in word_tokens:
+    LWodrs.append(WordNetLemmatizer().lemmatize(ms))
+
+Bigram_Words = list(ngrams(LWodrs, 2))
+
+
+def ProbabilityBigramHam(aH, bH):
+    try:
+        uH = Unigram_Ham[aH]
+    except KeyError:
+        uH= 0
+
+    try:
+        bH = Bigram_Ham[aH, bH]
+    except KeyError:
+        bH = 0
+
+    lH = len(Unigram_Ham)
+    probH = (bH + 1) / (uH + lH)
+    return probH
+
+probH = 1
+for wordBi in Bigram_Words:
+    probH = probH * ProbabilityBigramHam(wordBi[0], wordBi[1])
+
+#print(prob)
+
+def ProbabilityBigramSpam(aS,bS):
+    try:
+        uS = Unigram_Spam[aS]
+    except KeyError:
+        uS= 0
+
+    try:
+        bS = Bigram_Spam[aS, bS]
+    except KeyError:
+        bS = 0
+
+    lS = len(Unigram_Spam)
+    probS = (bS + 1) / (uS + lS)
+    return probS
+
+probS = 1
+for wordBiSpam in Bigram_Words:
+    probS = probS * ProbabilityBigramSpam(wordBiSpam[0], wordBiSpam[1])
+if probS<probH :
+    print ("The message " +Show_Out_Msg1+ "belongs to Ham")
+else:
+    print ("The message " +Show_Out_Msg1+ "belongs to Spam")	
+#print(prob)
+
+
