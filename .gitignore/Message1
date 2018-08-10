@@ -102,6 +102,7 @@ def ProbabilityBigramHam(aH, bH):
     lH = len(Unigram_Ham)
     probH = (bH + 1) / (uH + lH)
     return probH
+    print("Probability the message belonges to Ham is " +probH)
 
 probH = 1
 for wordBi in Bigram_Words:
@@ -121,6 +122,7 @@ def ProbabilityBigramSpam(aS,bS):
     lS = len(Unigram_Spam)
     probS = (bS + 1) / (uS + lS)
     return probS
+     print("Probability the message belonges to Spam is " +probS)
 
 probS = 1
 for wordBiSpam in Bigram_Words:
