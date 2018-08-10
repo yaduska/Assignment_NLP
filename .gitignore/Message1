@@ -107,8 +107,6 @@ probH = 1
 for wordBi in Bigram_Words:
     probH = probH * ProbabilityBigramHam(wordBi[0], wordBi[1])
 
-#print(prob)
-
 def ProbabilityBigramSpam(aS,bS):
     try:
         uS = Unigram_Spam[aS]
@@ -131,6 +129,6 @@ if probS<probH :
     print ("The message " +Show_Out_Msg1+ "belongs to Ham")
 else:
     print ("The message " +Show_Out_Msg1+ "belongs to Spam")	
-#print(prob)
+
 
 
